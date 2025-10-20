@@ -30,6 +30,8 @@ authRouter.get("/", async (req, res) => {
 });
 
 authRouter.get("/checkuser", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
   if (
     req.query.username === undefined ||
     typeof req.query.username !== "string"
@@ -40,7 +42,7 @@ authRouter.get("/checkuser", async (req, res) => {
 
   let exists = await checkUserExists(req.query.username);
   res.status(200).json({
-    avaliable: !exists,
+    available: !exists,
   });
 });
 
