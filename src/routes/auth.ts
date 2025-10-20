@@ -1,10 +1,8 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import { checkUserExists, getUser, getUsers, registerUser } from "../user.js";
+import prisma from "../prisma.js"
 
-dotenv.config();
 
 let JWT_SECRET: string;
 if (typeof process.env.JWT_SECRET !== "string") {
@@ -14,14 +12,24 @@ if (typeof process.env.JWT_SECRET !== "string") {
   JWT_SECRET = process.env.JWT_SECRET;
 }
 
+
+async function checkUserExists(username: string) {
+  let user = await prisma.user.findUnique({
+    select: { id: true },
+    where: { username: username }
+  });
+  return user !== null;
+}
+
+
 const authRouter = express.Router();
 authRouter.use(express.json());
 
-authRouter.get("/", (req, res) => {
-  res.status(200).json(getUsers());
+authRouter.get("/", async (req, res) => {
+  res.status(200).json(await prisma.user.findMany());
 });
 
-authRouter.get("/checkuser", (req, res) => {
+authRouter.get("/checkuser", async (req, res) => {
   if (
     req.query.username === undefined ||
     typeof req.query.username !== "string"
@@ -30,8 +38,9 @@ authRouter.get("/checkuser", (req, res) => {
     return;
   }
 
+  let exists = await checkUserExists(req.query.username);
   res.status(200).json({
-    avaliable: !checkUserExists(req.query.username),
+    avaliable: !exists,
   });
 });
 
@@ -45,15 +54,17 @@ authRouter.post("/signup", async (req, res) => {
     return;
   }
 
-  if (checkUserExists(req.body.username)) {
+  if (await checkUserExists(req.body.username)) {
     res.status(400).send("Username is already taken");
     return;
   }
 
   const hashed = await bcrypt.hash(req.body.password, 10);
-  registerUser({
-    username: req.body.username,
-    password: hashed,
+  await prisma.user.create({
+    data: {
+      username: req.body.username,
+      password: hashed,
+    }
   });
 
   res.status(200).send();
@@ -69,7 +80,9 @@ authRouter.post("/login", async (req, res) => {
     return;
   }
 
-  const user = getUser(req.body.username);
+  const user = await prisma.user.findUnique({
+    where: { username: req.body.username }
+  });
   if (!user) {
     res.status(400).send("User does not exist");
     return;

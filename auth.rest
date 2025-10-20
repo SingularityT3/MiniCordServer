@@ -1,0 +1,70 @@
+GET http://localhost:3000/auth/
+
+###
+POST http://localhost:3000/auth/signup
+Content-Type: application/json
+
+{
+    "username": "Alice",
+    "password": "abcd"
+}
+
+###
+POST http://localhost:3000/auth/signup
+Content-Type: application/json
+
+{
+    "username": "Bob",
+    "password": "djsnfl"
+}
+
+###
+POST http://localhost:3000/auth/signup
+Content-Type: application/json
+
+{
+    "username": "Charlie"
+}
+
+###
+POST http://localhost:3000/auth/signup
+
+{
+    "username": "Alice",
+    "password": "abcd"
+}
+
+###
+GET http://localhost:3000/auth/checkuser?username=Alice
+
+###
+GET http://localhost:3000/auth/checkuser?username=Charlie
+
+###
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "username": "Alice",
+    "password": "wrong"
+}
+
+###
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "username": "Alice",
+    "password": "abcd"
+}
+
+###
+GET http://localhost:3000/protected
+
+###
+GET http://localhost:3000/protected
+Authorization: Bearer suvasidug24t2328
+
+###
+GET http://localhost:3000/protected
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkFsaWNlIiwiaWF0IjoxNzYwOTQ0MDYwLCJleHAiOjE3NjA5NDc2NjB9.JyBRfZ3CtORspM9ZvWgxbnRuGe8C-kUmQMGEiPWNH0g
