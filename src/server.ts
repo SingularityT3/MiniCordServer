@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { authRouter } from "./routes/auth.js";
 import { verifyToken } from "./middleware/authMiddleware.js";
 import dotenv from "dotenv";
@@ -7,6 +8,11 @@ dotenv.config();
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  optionsSuccessStatus: 204
+}))
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
