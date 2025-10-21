@@ -28,20 +28,24 @@ friendsRouter.get("/", async (req, res) => {
   }
 });
 
-friendsRouter.post("/sendRequest", getFriendRelation(true, false), async (req, res) => {
-  if (req.friend!.friendRelationId) {
-    res.status(400).send("Already friends or request pending");
-    return;
+friendsRouter.post(
+  "/sendRequest",
+  getFriendRelation(true, false),
+  async (req, res) => {
+    if (req.friend!.friendRelationId) {
+      res.status(400).send("Already friends or request pending");
+      return;
+    }
+
+    await prisma.friend.create({
+      data: {
+        senderId: req.user!.id,
+        recipientId: req.friend!.id,
+      },
+    });
+    res.status(200).send();
   }
-  
-  await prisma.friend.create({
-    data: {
-      senderId: req.user!.id,
-      recipientId: req.friend!.id,
-    },
-  });
-  res.status(200).send();
-});
+);
 
 friendsRouter.post(
   "/acceptRequest",
@@ -49,18 +53,22 @@ friendsRouter.post(
   async (req, res) => {
     await prisma.friend.update({
       where: { id: req.friend!.friendRelationId! },
-      data: { acceptTime: Date() },
+      data: { acceptTime: new Date() },
     });
     res.status(200).send();
   }
 );
 
-friendsRouter.delete("/", getFriendRelation(true, true), async (req, res) => {
-  await prisma.friend.delete({
-    where: { id: req.friend!.friendRelationId! },
-  });
-  res.status(200).send();
-});
+friendsRouter.post(
+  "/rejectRequest",
+  getFriendRelation(true, true),
+  async (req, res) => {
+    await prisma.friend.delete({
+      where: { id: req.friend!.friendRelationId! },
+    });
+    res.status(200).send();
+  }
+);
 
 async function getFriendUser(
   req: express.Request,
