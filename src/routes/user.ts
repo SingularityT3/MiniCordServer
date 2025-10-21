@@ -1,5 +1,6 @@
 import express from "express";
 import prisma from "../prisma.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 export const userRouter = express.Router();
 
@@ -20,4 +21,12 @@ userRouter.get("/", async (req, res) => {
   } else {
     res.status(404).send();
   }
+});
+
+userRouter.get("/self", verifyToken, async (req, res) => {
+  const user = await prisma.user.findUnique({
+    select: { id: true, username: true },
+    where: { id: req.user!.id }
+  });
+  res.status(200).json(user!);
 });
