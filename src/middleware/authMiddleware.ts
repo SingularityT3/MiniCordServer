@@ -1,12 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../routes/auth.js";
+import prisma from "../prisma.js";
 
 interface JWTPayload {
+  id: string;
   username: string;
 }
 
-export function verifyToken(req: Request, res: Response, next: NextFunction) {
+export async function verifyToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const auth_header = req.headers["authorization"];
   const token = auth_header && auth_header.split(" ")[1];
   if (!token) {
@@ -16,6 +22,13 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+
+    const user = await prisma.user.findUnique({
+      select: { id: true },
+      where: { id: decoded.id },
+    });
+    if (!user) throw new Error();
+
     req.user = decoded;
     next();
   } catch (err) {

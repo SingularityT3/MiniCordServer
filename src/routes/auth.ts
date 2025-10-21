@@ -1,8 +1,7 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import prisma from "../prisma.js"
-
+import prisma from "../prisma.js";
 
 let JWT_SECRET: string;
 if (typeof process.env.JWT_SECRET !== "string") {
@@ -12,18 +11,15 @@ if (typeof process.env.JWT_SECRET !== "string") {
   JWT_SECRET = process.env.JWT_SECRET;
 }
 
-
 async function checkUserExists(username: string) {
-  let user = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     select: { id: true },
-    where: { username: username }
+    where: { username: username },
   });
   return user !== null;
 }
 
-
 const authRouter = express.Router();
-authRouter.use(express.json());
 
 authRouter.get("/", async (req, res) => {
   res.status(200).json(await prisma.user.findMany());
@@ -40,7 +36,7 @@ authRouter.get("/checkuser", async (req, res) => {
     return;
   }
 
-  let exists = await checkUserExists(req.query.username);
+  const exists = await checkUserExists(req.query.username);
   res.status(200).json({
     available: !exists,
   });
@@ -66,7 +62,7 @@ authRouter.post("/signup", async (req, res) => {
     data: {
       username: req.body.username,
       password: hashed,
-    }
+    },
   });
 
   res.status(200).send();
@@ -83,8 +79,8 @@ authRouter.post("/login", async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({
-    select: { username: true, password: true },
-    where: { username: req.body.username }
+    select: { id: true, username: true, password: true },
+    where: { username: req.body.username },
   });
   if (!user) {
     res.status(400).send("User does not exist");
@@ -97,7 +93,9 @@ authRouter.post("/login", async (req, res) => {
     return;
   }
 
-  const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: "1h" });
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
+    expiresIn: "1h",
+  });
   res.status(200).send(token);
 });
 

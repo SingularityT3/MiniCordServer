@@ -1,28 +1,28 @@
 import express from "express";
 import cors from "cors";
-import { authRouter } from "./routes/auth.js";
-import { verifyToken } from "./middleware/authMiddleware.js";
 import dotenv from "dotenv";
+
+import { authRouter } from "./routes/auth.js";
+import { userRouter } from "./routes/user.js";
+import { friendsRouter } from "./routes/friends.js";
 
 dotenv.config();
 
 const app = express();
 const port = 3000;
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
-  optionsSuccessStatus: 204
-}))
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
-app.get("/protected", verifyToken, (req, res) => {
-  res.send("You are logged in. Username: " + req.user?.username);
-});
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    optionsSuccessStatus: 204,
+  })
+);
+app.use(express.urlencoded());
+app.use(express.json());
 
 app.use("/auth", authRouter);
+app.use("/user", userRouter);
+app.use("/friends", friendsRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
