@@ -2,12 +2,17 @@ import express from "express";
 import prisma from "../../prisma.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 import { memberRouter } from "./member.js";
+import { ObjectId } from "mongodb";
 
 export const conversationRouter = express.Router();
 
 conversationRouter.use(verifyToken);
 
 conversationRouter.param("conversationId", async (req, res, next) => {
+  if (!ObjectId.isValid(req.params.conversationId!)) {
+    res.status(400).send("Invalid conversation ID");
+    return;
+  }
   const conversation = await prisma.conversation.findUnique({
     select: { id: true },
     where: { id: req.params.conversationId! },
@@ -51,20 +56,20 @@ conversationRouter.post("/", async (req, res) => {
   }
 
   let ids: string[] = [req.user!.id];
-  for (const username of req.body.members) {
-    if (typeof username !== "string") {
-      res.status(400).send("Invalid usernames for members");
+  for (const userId of req.body.members) {
+    if (!ObjectId.isValid(userId)) {
+      res.status(400).send("Invalid user ID for member");
       return;
     }
     const user = await prisma.user.findUnique({
       select: { id: true },
-      where: { username: username },
+      where: { id: userId },
     });
     if (!user) {
-      res.status(400).send(`Username '${username}' does not exist`);
+      res.status(400).send(`User '${userId}' does not exist`);
       return;
     }
-    ids.push(user.id);
+    ids.push(userId);
   }
 
   const conversation = await prisma.conversation.create({});

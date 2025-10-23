@@ -6,11 +6,8 @@ declare global {
       user?: {
         id: string;
         username: string;
-      };
-      friend?: {
-        id: string;
-        username: string;
-        friendRelationId?: string;
+        password?: string;
+        isSender?: boolean; // for friend requests
       };
     }
   }

@@ -22,9 +22,9 @@ app.use(express.urlencoded());
 app.use(express.json());
 
 app.use("/auth", authRouter);
-app.use("/user", userRouter);
+app.use("/users", userRouter);
 app.use("/friends", friendsRouter);
-app.use("/conversation", conversationRouter);
+app.use("/conversations", conversationRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

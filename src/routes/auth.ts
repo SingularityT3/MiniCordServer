@@ -11,49 +11,22 @@ if (typeof process.env.JWT_SECRET !== "string") {
   JWT_SECRET = process.env.JWT_SECRET;
 }
 
-async function checkUserExists(username: string) {
-  const user = await prisma.user.findUnique({
-    select: { id: true },
-    where: { username: username },
-  });
-  return user !== null;
-}
-
 const authRouter = express.Router();
 
-authRouter.get("/", async (req, res) => {
-  res.status(200).json(await prisma.user.findMany());
-});
-
-authRouter.get("/checkuser", async (req, res) => {
+authRouter.get("/checkuser/:username", async (req, res) => {
   res.set("Cache-Control", "no-store");
-
-  if (
-    req.query.username === undefined ||
-    typeof req.query.username !== "string"
-  ) {
-    res.status(400).send("Expected username");
-    return;
-  }
-
-  const exists = await checkUserExists(req.query.username);
+  const user = await prisma.user.findUnique({
+    select: { id: true },
+    where: { username: req.params.username },
+  });
   res.status(200).json({
-    available: !exists,
+    available: !user,
   });
 });
 
-authRouter.post("/signup", async (req, res) => {
-  if (
-    req.body === undefined ||
-    req.body.username === undefined ||
-    req.body.password === undefined
-  ) {
-    res.status(400).send("Missing 'username' and 'password' fields");
-    return;
-  }
-
-  if (await checkUserExists(req.body.username)) {
-    res.status(400).send("Username is already taken");
+authRouter.post("/signup", getUser, async (req, res) => {
+  if (req.user) {
+    res.status(409).send("Username is already taken");
     return;
   }
 
@@ -68,11 +41,37 @@ authRouter.post("/signup", async (req, res) => {
   res.status(200).send();
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", getUser, async (req, res) => {
+  if (!req.user) {
+    res.status(400).send("User does not exist");
+    return;
+  }
+
+  const match = await bcrypt.compare(req.body.password, req.user.password!);
+  if (!match) {
+    res.status(401).send("Incorrect password");
+    return;
+  }
+
+  const token = jwt.sign(
+    { id: req.user.id, username: req.user.username },
+    JWT_SECRET,
+    {
+      expiresIn: "1h",
+    }
+  );
+  res.status(200).send(token);
+});
+
+async function getUser(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
   if (
-    req.body === undefined ||
-    req.body.username === undefined ||
-    req.body.password === undefined
+    !req.body ||
+    typeof req.body.username !== "string" ||
+    typeof req.body.password !== "string"
   ) {
     res.status(400).send("Missing 'username' and 'password' fields");
     return;
@@ -82,21 +81,11 @@ authRouter.post("/login", async (req, res) => {
     select: { id: true, username: true, password: true },
     where: { username: req.body.username },
   });
-  if (!user) {
-    res.status(400).send("User does not exist");
-    return;
-  }
 
-  const match = await bcrypt.compare(req.body.password, user.password);
-  if (!match) {
-    res.status(401).send("Incorrect password");
-    return;
+  if (user) {
+    req.user = user;
   }
-
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: "1h",
-  });
-  res.status(200).send(token);
-});
+  next();
+}
 
 export { authRouter, JWT_SECRET };

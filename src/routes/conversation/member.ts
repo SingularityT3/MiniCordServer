@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import prisma from "../../prisma.js";
 import express from "express";
 
@@ -8,14 +9,17 @@ type ConversationRequest<P = {}> = express.Request<
 >;
 
 memberRouter.post("/", async (req: ConversationRequest, res) => {
-  const username = req.body.username;
-  if (!username) {
-    res.status(400).send("Username not specified");
+  if (!req.body.id) {
+    res.status(400).send("User ID not specified");
+    return;
+  }
+  if (!ObjectId.isValid(req.body.id)) {
+    res.status(400).send("Invalid user ID");
     return;
   }
   const user = await prisma.user.findUnique({
     select: { id: true },
-    where: { username: username },
+    where: { id: req.body.userId },
   });
   if (!user) {
     res.status(400).send("User does not exist");
@@ -48,6 +52,10 @@ memberRouter.post("/", async (req: ConversationRequest, res) => {
 memberRouter.delete(
   "/:memberId",
   async (req: ConversationRequest<{ memberId: string }>, res) => {
+    if (!ObjectId.isValid(req.params.memberId!)) {
+      res.status(400).send("Invalid member ID");
+      return;
+    }
     const member = await prisma.conversationMember.findFirst({
       select: { id: true },
       where: {

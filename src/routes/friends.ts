@@ -1,7 +1,7 @@
 import express from "express";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import prisma from "../prisma.js";
-import type { Prisma } from "@prisma/client";
+import { ObjectId } from "mongodb";
 
 export const friendsRouter = express.Router();
 friendsRouter.use(verifyToken);
@@ -11,6 +11,7 @@ friendsRouter.get("/", async (req, res) => {
 
   const friends = await prisma.friend.findMany({
     select: {
+      id: true,
       senderId: true,
       recipientId: true,
       sendTime: true,
@@ -21,122 +22,94 @@ friendsRouter.get("/", async (req, res) => {
     },
   });
 
-  if (friends) {
-    res.status(200).json(friends);
-  } else {
-    res.status(404).send();
-  }
+  res.status(200).json(friends);
 });
 
-friendsRouter.post(
-  "/sendRequest",
-  getFriendRelation(true, false),
-  async (req, res) => {
-    if (req.friend!.friendRelationId) {
-      res.status(400).send("Already friends or request pending");
-      return;
-    }
-
-    await prisma.friend.create({
-      data: {
-        senderId: req.user!.id,
-        recipientId: req.friend!.id,
-      },
-    });
-    res.status(200).send();
-  }
-);
-
-friendsRouter.post(
-  "/acceptRequest",
-  getFriendRelation(false, true),
-  async (req, res) => {
-    await prisma.friend.update({
-      where: { id: req.friend!.friendRelationId! },
-      data: { acceptTime: new Date() },
-    });
-    res.status(200).send();
-  }
-);
-
-friendsRouter.post(
-  "/rejectRequest",
-  getFriendRelation(true, true),
-  async (req, res) => {
-    await prisma.friend.delete({
-      where: { id: req.friend!.friendRelationId! },
-    });
-    res.status(200).send();
-  }
-);
-
-async function getFriendUser(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) {
-  if (typeof req.body.username !== "string") {
-    res.status(400).send("Expected username");
+friendsRouter.post("/", async (req, res) => {
+  if (typeof req.body.recipientId !== "string") {
+    res.status(400).send("Missing field 'recipientId'");
     return;
   }
-  const friendUsername = req.body.username;
-
+  if (!ObjectId.isValid(req.body.recipientId)) {
+    res.status(400).send("Invalid recipient ID");
+    return;
+  }
   const friendUser = await prisma.user.findUnique({
     select: { id: true },
-    where: { username: friendUsername },
+    where: { id: req.body.recipientId },
   });
-
   if (!friendUser) {
-    res.status(404).send("No such user");
+    res.status(400).send("Recipient does not exist");
     return;
   }
 
-  req.friend = { id: friendUser.id, username: friendUsername };
+  const friend = await prisma.friend.findFirst({
+    select: { acceptTime: true },
+    where: {
+      OR: [
+        { senderId: req.user!.id, recipientId: req.body.recipientId },
+        { senderId: req.body.recipientId, recipientId: req.user!.id },
+      ],
+    },
+  });
+  if (friend) {
+    res
+      .status(409)
+      .send(
+        friend.acceptTime === null
+          ? "Friend request already exists"
+          : "Already friends with recipient"
+      );
+    return;
+  }
+
+  await prisma.friend.create({
+    data: {
+      senderId: req.user!.id,
+      recipientId: req.body.recipientId,
+    },
+  });
+  res.status(200).send();
+});
+
+friendsRouter.param("requestId", async (req, res, next) => {
+  if (!ObjectId.isValid(req.params.requestId!)) {
+    res.status(400).send("Invalid request ID");
+    return;
+  }
+  const friend = await prisma.friend.findUnique({
+    select: { senderId: true, recipientId: true },
+    where: { id: req.params.requestId! },
+  });
+  if (!friend) {
+    res.status(404).send("Request does not exist");
+    return;
+  }
+
+  req.user!.isSender = req.user!.id === friend.senderId;
+  if (!req.user!.isSender && req.user!.id !== friend.recipientId) {
+    res.status(403).send();
+    return;
+  }
+
   next();
-}
+});
 
-function getFriendRelation(bidirectional: boolean, raiseErr: boolean) {
-  return function (
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) {
-    getFriendUser(req, res, async () => {
-      const query1: Prisma.FriendWhereInput = {
-        senderId: req.friend!.id,
-        recipientId: req.user!.id,
-      };
+friendsRouter.post("/:requestId/accept", async (req, res) => {
+  if (req.user!.isSender) {
+    res.status(403).send("Sender cannot accept request");
+    return;
+  }
+  await prisma.friend.update({
+    where: { id: req.params.requestId },
+    data: { acceptTime: new Date() },
+  });
+  res.status(200).send();
+});
 
-      const query: Prisma.FriendWhereInput = bidirectional
-        ? {
-            OR: [
-              query1,
-              {
-                senderId: req.user!.id,
-                recipientId: req.friend!.id,
-              },
-            ],
-          }
-        : query1;
-
-      const friend = await prisma.friend.findFirst({
-        select: { id: true },
-        where: query,
-      });
-
-      if (!friend) {
-        if (raiseErr) {
-          res
-            .status(400)
-            .send("User is not a friend or has not sent a friend request");
-        } else {
-          next();
-        }
-        return;
-      }
-
-      req.friend!.friendRelationId = friend.id;
-      next();
-    });
-  };
-}
+friendsRouter.delete("/:requestId", async (req, res) => {
+  await prisma.friend.delete({
+    where: { id: req.params.requestId },
+  });
+  res.status(200).send();
+});
