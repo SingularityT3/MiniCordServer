@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { authRouter } from "./routes/auth.js";
 import { userRouter } from "./routes/user.js";
 import { friendsRouter } from "./routes/friends.js";
+import { conversationRouter } from "./routes/conversation/conversation.js";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/friends", friendsRouter);
+app.use("/conversation", conversationRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

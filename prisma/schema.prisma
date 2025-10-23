@@ -30,6 +30,7 @@ model Friend {
 
 model Conversation {
   id           String               @id @default(auto()) @map("_id") @db.ObjectId
+  title        String?
   creationTime DateTime             @default(now())
   members      ConversationMember[]
   messages     Message[]
