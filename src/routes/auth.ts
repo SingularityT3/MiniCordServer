@@ -38,7 +38,7 @@ authRouter.post("/signup", getUser, async (req, res) => {
     },
   });
 
-  res.status(200).send();
+  res.status(201).send();
 });
 
 authRouter.post("/login", getUser, async (req, res) => {

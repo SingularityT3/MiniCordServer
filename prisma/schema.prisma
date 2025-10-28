@@ -19,21 +19,27 @@ model User {
 }
 
 model Friend {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  sender      User      @relation("UserSent", fields: [senderId], references: [id])
-  senderId    String    @db.ObjectId
-  recipient   User      @relation("UserReceived", fields: [recipientId], references: [id])
-  recipientId String    @db.ObjectId
-  sendTime    DateTime  @default(now())
-  acceptTime  DateTime?
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  sender         User          @relation("UserSent", fields: [senderId], references: [id])
+  senderId       String        @db.ObjectId
+  recipient      User          @relation("UserReceived", fields: [recipientId], references: [id])
+  recipientId    String        @db.ObjectId
+  sendTime       DateTime      @default(now())
+  acceptTime     DateTime?
+  conversaton    Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId String?       @db.ObjectId
+
+  @@unique([senderId, recipientId])
 }
 
 model Conversation {
   id           String               @id @default(auto()) @map("_id") @db.ObjectId
   title        String?
+  type         ConversationType
   creationTime DateTime             @default(now())
   members      ConversationMember[]
   messages     Message[]
+  friends      Friend[]
 }
 
 model ConversationMember {
@@ -44,6 +50,8 @@ model ConversationMember {
   userId         String       @db.ObjectId
   joinTime       DateTime     @default(now())
   leaveTime      DateTime?
+
+  @@unique([conversationId, userId])
 }
 
 model Message {
@@ -54,4 +62,9 @@ model Message {
   conversationId String       @db.ObjectId
   sendTime       DateTime     @default(now())
   content        String
+}
+
+enum ConversationType {
+  DIRECT_MESSAGE
+  GROUP
 }

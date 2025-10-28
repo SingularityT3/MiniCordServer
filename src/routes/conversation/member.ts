@@ -4,11 +4,15 @@ import express from "express";
 
 export const memberRouter = express.Router();
 
-type ConversationRequest<P = {}> = express.Request<
-  { conversationId: string } & P
->;
+memberRouter.get("/", async (req, res) => {
+  const members = await prisma.conversationMember.findMany({
+    select: { userId: true, joinTime: true },
+    where: { conversationId: req.conversation!.id, leaveTime: null },
+  });
+  res.status(200).json(members);
+});
 
-memberRouter.post("/", async (req: ConversationRequest, res) => {
+memberRouter.post("/", async (req, res) => {
   if (!req.body.id) {
     res.status(400).send("User ID not specified");
     return;
@@ -29,7 +33,7 @@ memberRouter.post("/", async (req: ConversationRequest, res) => {
   const member = await prisma.conversationMember.findFirst({
     select: { id: true },
     where: {
-      conversationId: req.params.conversationId,
+      conversationId: req.conversation!.id,
       userId: user.id,
       leaveTime: { not: null },
     },
@@ -39,40 +43,43 @@ memberRouter.post("/", async (req: ConversationRequest, res) => {
     return;
   }
 
-  await prisma.conversationMember.create({
+  const newMember = await prisma.conversationMember.create({
     data: {
-      conversationId: req.params.conversationId,
+      conversationId: req.conversation!.id,
       userId: user.id,
+      leaveTime: null,
     },
   });
 
-  res.status(201).send();
+  res.set("Location", `/conversations/${req.conversation!.id}/${newMember.id}`);
+  res.status(201).json({ id: newMember.id });
 });
 
-memberRouter.delete(
-  "/:memberId",
-  async (req: ConversationRequest<{ memberId: string }>, res) => {
-    if (!ObjectId.isValid(req.params.memberId!)) {
-      res.status(400).send("Invalid member ID");
-      return;
-    }
-    const member = await prisma.conversationMember.findFirst({
-      select: { id: true },
-      where: {
-        conversationId: req.params.conversationId,
-        userId: req.params.memberId,
-        leaveTime: { not: null },
-      },
-    });
-    if (!member) {
-      res.status(404).send("No such member");
-      return;
-    }
-
-    await prisma.conversationMember.update({
-      where: { id: member.id },
-      data: { leaveTime: new Date() },
-    });
-    res.status(200).send();
+memberRouter.param("memberId", async (req, res, next) => {
+  if (!ObjectId.isValid(req.params.memberId!)) {
+    res.status(400).send("Invalid member ID");
+    return;
   }
-);
+  const member = await prisma.conversationMember.findFirst({
+    select: { id: true },
+    where: {
+      conversationId: req.conversation!.id,
+      userId: req.params.memberId!,
+      leaveTime: { not: null },
+    },
+  });
+  if (!member) {
+    res.status(404).send("No such member");
+    return;
+  }
+  req.member = member;
+  next();
+});
+
+memberRouter.delete("/:memberId", async (req, res) => {
+  await prisma.conversationMember.update({
+    where: { id: req.member!.id },
+    data: { leaveTime: new Date() },
+  });
+  res.status(200).send();
+});

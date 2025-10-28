@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import "express";
 
 declare global {
@@ -8,6 +9,12 @@ declare global {
         username: string;
         password?: string;
         isSender?: boolean; // for friend requests
+      };
+      conversation?: {
+        id: string;
+      };
+      member?: {
+        id: string;
       };
     }
   }

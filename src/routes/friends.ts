@@ -63,13 +63,14 @@ friendsRouter.post("/", async (req, res) => {
     return;
   }
 
-  await prisma.friend.create({
+  const friendRequest = await prisma.friend.create({
     data: {
       senderId: req.user!.id,
       recipientId: req.body.recipientId,
     },
   });
-  res.status(200).send();
+  res.set("Location", `/friends/${friendRequest.id}`);
+  res.status(201).json({ id: friendRequest.id });
 });
 
 friendsRouter.param("requestId", async (req, res, next) => {
