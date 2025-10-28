@@ -3,6 +3,7 @@ import prisma from "../../prisma.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 import { memberRouter } from "./member.js";
 import { ObjectId } from "mongodb";
+import { messageRouter } from "./message.js";
 
 export const conversationRouter = express.Router();
 
@@ -40,6 +41,7 @@ conversationRouter.param("conversationId", async (req, res, next) => {
 });
 
 conversationRouter.use("/:conversationId/members", memberRouter);
+conversationRouter.use("/:conversationId/messages", messageRouter);
 
 conversationRouter.get("/", async (req, res) => {
   const conversationMembers = await prisma.conversationMember.findMany({
