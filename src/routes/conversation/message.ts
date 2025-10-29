@@ -1,5 +1,5 @@
 import express from "express";
-import { ObjectId } from "mongodb";
+import { BSONRegExp, ObjectId } from "mongodb";
 import prisma from "../../prisma.js";
 import type { Prisma } from "@prisma/client";
 
@@ -17,6 +17,21 @@ messageRouter.get("/", async (req, res) => {
     before = req.query.before;
   }
 
+  let after: string | null = null;
+  if (typeof req.query.after === "string") {
+    if (before) {
+      res
+        .status(400)
+        .send("Cannot use both 'before' and 'after' queries together");
+      return;
+    }
+    if (!ObjectId.isValid(req.query.after)) {
+      res.status(400).send("Invalid object ID for 'after' query");
+      return;
+    }
+    after = req.query.after;
+  }
+
   let limit = MAX_MSG_LIMIT;
   if (typeof req.query.limit === "string") {
     limit = Number(req.query.limit);
@@ -30,27 +45,35 @@ messageRouter.get("/", async (req, res) => {
     }
   }
 
-  const take_amt = 1 + Math.max(limit, MAX_MSG_LIMIT);
+  const take_amt = 1 + Math.min(limit, MAX_MSG_LIMIT);
   let db_query: Prisma.MessageFindManyArgs = {
-    take: -take_amt,
+    take: take_amt * (after ? 1 : -1),
     where: { conversationId: req.conversation!.id },
     orderBy: { id: "asc" },
   };
   if (before) {
     db_query.cursor = { id: before };
+  } else if (after) {
+    db_query.cursor = { id: after };
   }
   const messages = await prisma.message.findMany(db_query);
 
-  const nextCursorId = messages[0]?.id;
+  const nextCursorId = messages[after ? messages.length - 1 : 0]?.id;
   const hasNext = messages.length === take_amt;
   const pagination = {
     hasNext,
-    cursor: nextCursorId,
+    cursor: hasNext ? nextCursorId : undefined,
   };
 
+  const offset = after ? 0 : 1;
   res
     .status(200)
-    .json({ messages: hasNext ? messages.slice(1) : messages, pagination });
+    .json({
+      messages: hasNext
+        ? messages.slice(offset, messages.length - (1 - offset))
+        : messages,
+      pagination,
+    });
 });
 
 messageRouter.get("/:messageId", async (req, res) => {
