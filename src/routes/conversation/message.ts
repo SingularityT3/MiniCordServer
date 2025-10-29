@@ -50,7 +50,7 @@ messageRouter.get("/", async (req, res) => {
 
   res
     .status(200)
-    .json({ messages: messages.slice(hasNext ? 1 : 0), pagination });
+    .json({ messages: hasNext ? messages.slice(1) : messages, pagination });
 });
 
 messageRouter.get("/:messageId", async (req, res) => {

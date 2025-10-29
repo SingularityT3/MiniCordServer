@@ -79,7 +79,7 @@ friendsRouter.param("requestId", async (req, res, next) => {
     return;
   }
   const friend = await prisma.friend.findUnique({
-    select: { senderId: true, recipientId: true },
+    select: { senderId: true, recipientId: true, acceptTime: true },
     where: { id: req.params.requestId! },
   });
   if (!friend) {
@@ -87,17 +87,21 @@ friendsRouter.param("requestId", async (req, res, next) => {
     return;
   }
 
-  req.user!.isSender = req.user!.id === friend.senderId;
-  if (!req.user!.isSender && req.user!.id !== friend.recipientId) {
+  if (req.user!.id !== friend.senderId && req.user!.id !== friend.recipientId) {
     res.status(403).send();
     return;
   }
 
+  req.friend = friend;
   next();
 });
 
 friendsRouter.post("/:requestId/accept", async (req, res) => {
-  if (req.user!.isSender) {
+  if (req.friend!.acceptTime !== null) {
+    res.status(409).send("Already friends");
+    return;
+  }
+  if (req.user!.id === req.friend!.senderId) {
     res.status(403).send("Sender cannot accept request");
     return;
   }
@@ -109,6 +113,10 @@ friendsRouter.post("/:requestId/accept", async (req, res) => {
 });
 
 friendsRouter.delete("/:requestId", async (req, res) => {
+  if (req.friend!.acceptTime === null && req.user!.id === req.friend!.senderId) {
+    res.status(403).send("Sender cannot reject request");
+    return;
+  }
   await prisma.friend.delete({
     where: { id: req.params.requestId },
   });

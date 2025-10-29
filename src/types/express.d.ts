@@ -10,6 +10,11 @@ declare global {
         password?: string;
         isSender?: boolean; // for friend requests
       };
+      friend?: {
+        senderId: string;
+        recipientId: string;
+        acceptTime: Date | null;
+      };
       conversation?: {
         id: string;
       };
