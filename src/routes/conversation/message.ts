@@ -1,5 +1,5 @@
 import express from "express";
-import { BSONRegExp, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import prisma from "../../prisma.js";
 import type { Prisma } from "@prisma/client";
 
@@ -48,6 +48,7 @@ messageRouter.get("/", async (req, res) => {
   const take_amt = 1 + Math.min(limit, MAX_MSG_LIMIT);
   let db_query: Prisma.MessageFindManyArgs = {
     take: take_amt * (after ? 1 : -1),
+    skip: 1,
     where: { conversationId: req.conversation!.id },
     orderBy: { id: "asc" },
   };
@@ -55,10 +56,12 @@ messageRouter.get("/", async (req, res) => {
     db_query.cursor = { id: before };
   } else if (after) {
     db_query.cursor = { id: after };
+  } else {
+    db_query.skip = 0;
   }
   const messages = await prisma.message.findMany(db_query);
 
-  const nextCursorId = messages[after ? messages.length - 1 : 0]?.id;
+  const nextCursorId = messages[after ? messages.length - 2 : 1]?.id;
   const hasNext = messages.length === take_amt;
   const pagination = {
     hasNext,
