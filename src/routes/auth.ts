@@ -30,6 +30,11 @@ authRouter.post("/signup", getUser, async (req, res) => {
     return;
   }
 
+  if (req.body.password!.length < 8) {
+    res.status(400).send("Password must be at least 8 characters");
+    return;
+  }
+
   const hashed = await bcrypt.hash(req.body.password, 10);
   await prisma.user.create({
     data: {
@@ -58,7 +63,7 @@ authRouter.post("/login", getUser, async (req, res) => {
     JWT_SECRET,
     {
       expiresIn: "1h",
-    }
+    },
   );
   res.status(200).send(token);
 });
@@ -66,7 +71,7 @@ authRouter.post("/login", getUser, async (req, res) => {
 async function getUser(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) {
   if (
     !req.body ||
