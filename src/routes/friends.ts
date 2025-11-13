@@ -97,7 +97,7 @@ friendsRouter.param("requestId", async (req, res, next) => {
 });
 
 friendsRouter.post("/:requestId/accept", async (req, res) => {
-  if (req.friend!.acceptTime !== null) {
+  if (req.friend!.acceptTime != null) {
     res.status(409).send("Already friends");
     return;
   }
@@ -113,7 +113,10 @@ friendsRouter.post("/:requestId/accept", async (req, res) => {
 });
 
 friendsRouter.delete("/:requestId", async (req, res) => {
-  if (req.friend!.acceptTime === null && req.user!.id === req.friend!.senderId) {
+  if (
+    req.friend!.acceptTime == null &&
+    req.user!.id === req.friend!.senderId
+  ) {
     res.status(403).send("Sender cannot reject request");
     return;
   }
