@@ -1,4 +1,5 @@
-.vscode
-node_modules
-dist
 .env
+.vscode
+dist
+media
+node_modules
