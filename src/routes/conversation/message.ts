@@ -111,5 +111,5 @@ messageRouter.post("/", async (req, res) => {
     },
   });
 
-  res.status(201).json({ id: message.id });
+  res.status(201).json({ id: message.id, timestamp: message.timestamp });
 });

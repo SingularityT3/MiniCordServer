@@ -18,7 +18,7 @@ userRouter.get("/self", verifyToken, async (req, res) => {
 
 userRouter.get("/by-username/:username", async (req, res) => {
   const user = await prisma.user.findUnique({
-    select: { id: true },
+    select: { id: true, username: true },
     where: { username: req.params.username },
   });
   if (user) {
@@ -34,7 +34,7 @@ userRouter.get("/:id", async (req, res) => {
     return;
   }
   const user = await prisma.user.findUnique({
-    select: { username: true },
+    select: { id: true, username: true },
     where: { id: req.params.id },
   });
 

@@ -9,7 +9,7 @@ friendsRouter.use(verifyToken);
 friendsRouter.get("/", async (req, res) => {
   const userId = req.user!.id;
 
-  const friends = await prisma.friend.findMany({
+  const friendsRaw = await prisma.friend.findMany({
     select: {
       id: true,
       senderId: true,
@@ -22,7 +22,34 @@ friendsRouter.get("/", async (req, res) => {
     },
   });
 
-  res.status(200).json(friends);
+  let friends = [];
+  let pending = [];
+
+  const friendUsers = await Promise.all(
+    friendsRaw.map((friend) => {
+      const friendId =
+        friend.senderId == userId ? friend.recipientId : friend.senderId;
+      return prisma.user.findUnique({
+        select: { id: true, username: true },
+        where: { id: friendId },
+      });
+    })
+  );
+
+  for (let i = 0; i < friendUsers.length; i++) {
+    const friend = {
+      id: friendsRaw[i]!.id,
+      sender: friendUsers[i]!,
+    };
+
+    if (friendsRaw[i]!.acceptTime) {
+      friends.push(friend);
+    } else {
+      pending.push(friend);
+    }
+  }
+
+  res.status(200).json({ friends, pending });
 });
 
 friendsRouter.post("/", async (req, res) => {
@@ -113,7 +140,10 @@ friendsRouter.post("/:requestId/accept", async (req, res) => {
 });
 
 friendsRouter.delete("/:requestId", async (req, res) => {
-  if (req.friend!.acceptTime === null && req.user!.id === req.friend!.senderId) {
+  if (
+    req.friend!.acceptTime === null &&
+    req.user!.id === req.friend!.senderId
+  ) {
     res.status(403).send("Sender cannot reject request");
     return;
   }
