@@ -42,6 +42,7 @@ friendsRouter.get("/", async (req, res) => {
       sender: friendUsers[i]!,
     };
 
+    if (userId == friendsRaw[i]!.senderId) continue;
     if (friendsRaw[i]!.acceptTime) {
       friends.push(friend);
     } else {
