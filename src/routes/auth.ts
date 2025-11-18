@@ -3,6 +3,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../prisma.js";
 
+import dotenv from "dotenv";
+dotenv.config({quiet: true});
+
 let JWT_SECRET: string;
 if (typeof process.env.JWT_SECRET !== "string") {
   console.warn("WARNING: JWT_SECRET is not set in env.");
