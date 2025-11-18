@@ -60,7 +60,7 @@ model Message {
   authorId       String       @db.ObjectId
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   conversationId String       @db.ObjectId
-  sendTime       DateTime     @default(now())
+  timestamp      DateTime     @default(now())
   content        String
 }
 

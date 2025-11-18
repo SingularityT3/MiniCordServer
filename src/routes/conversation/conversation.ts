@@ -56,6 +56,14 @@ conversationRouter.get("/", async (req, res) => {
   res.status(200).json(conversations);
 });
 
+conversationRouter.get("/:conversationId", async (req, res) => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: req.params.conversationId! }
+  });
+  
+  res.status(200).json(conversation);
+});
+
 conversationRouter.post("/", async (req, res) => {
   if (
     !req.body.type ||

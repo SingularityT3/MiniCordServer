@@ -9,7 +9,7 @@ friendsRouter.use(verifyToken);
 friendsRouter.get("/", async (req, res) => {
   const userId = req.user!.id;
 
-  const friends = await prisma.friend.findMany({
+  const friendsRaw = await prisma.friend.findMany({
     select: {
       id: true,
       senderId: true,
@@ -22,7 +22,35 @@ friendsRouter.get("/", async (req, res) => {
     },
   });
 
-  res.status(200).json(friends);
+  let friends = [];
+  let pending = [];
+
+  const friendUsers = await Promise.all(
+    friendsRaw.map((friend) => {
+      const friendId =
+        friend.senderId == userId ? friend.recipientId : friend.senderId;
+      return prisma.user.findUnique({
+        select: { id: true, username: true },
+        where: { id: friendId },
+      });
+    })
+  );
+
+  for (let i = 0; i < friendUsers.length; i++) {
+    const friend = {
+      id: friendsRaw[i]!.id,
+      sender: friendUsers[i]!,
+    };
+
+    if (userId == friendsRaw[i]!.senderId) continue;
+    if (friendsRaw[i]!.acceptTime) {
+      friends.push(friend);
+    } else {
+      pending.push(friend);
+    }
+  }
+
+  res.status(200).json({ friends, pending });
 });
 
 friendsRouter.post("/", async (req, res) => {

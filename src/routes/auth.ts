@@ -63,15 +63,18 @@ authRouter.post("/login", getUser, async (req, res) => {
     JWT_SECRET,
     {
       expiresIn: "1h",
-    },
+    }
   );
-  res.status(200).send(token);
+
+  res
+    .status(200)
+    .json({ token, user: { id: req.user!.id, username: req.user!.username } });
 });
 
 async function getUser(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction,
+  next: express.NextFunction
 ) {
   if (
     !req.body ||
