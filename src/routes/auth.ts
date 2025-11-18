@@ -65,7 +65,7 @@ authRouter.post("/login", getUser, async (req, res) => {
     { id: req.user.id, username: req.user.username },
     JWT_SECRET,
     {
-      expiresIn: "1h",
+      expiresIn: "100h",
     }
   );
 
