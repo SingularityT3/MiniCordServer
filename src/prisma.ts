@@ -1,5 +1,3 @@
-import { PrismaClient } from "@prisma/client";
+import fakePrisma from "./fake-prisma.js";
 
-const prisma = new PrismaClient();
-
-export default prisma;
+export default fakePrisma;

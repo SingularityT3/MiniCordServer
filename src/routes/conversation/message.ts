@@ -1,7 +1,6 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import prisma from "../../prisma.js";
-import type { Prisma } from "@prisma/client";
 
 const MAX_MSG_LIMIT = 10;
 
@@ -46,7 +45,7 @@ messageRouter.get("/", async (req, res) => {
   }
 
   const take_amt = 1 + Math.min(limit, MAX_MSG_LIMIT);
-  let db_query: Prisma.MessageFindManyArgs = {
+  let db_query: any = {
     take: take_amt * (after ? 1 : -1),
     skip: 1,
     where: { conversationId: req.conversation!.id },

@@ -1,13 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
 
 import { authRouter } from "./routes/auth.js";
 import { userRouter } from "./routes/user.js";
 import { friendsRouter } from "./routes/friends.js";
 import { conversationRouter } from "./routes/conversation/conversation.js";
+import prisma from "./prisma.js";
 
-dotenv.config();
+await prisma.connect();
 
 const app = express();
 const port = 3000;
