@@ -5,7 +5,6 @@ cd MiniCordServer
 npm i
 echo "JWT_SECRET=test_secret
 DATABASE_URL=\"mongodb://localhost:27017/minicord\"
-CORS_ORIGIN=\"localhost:5173\"" > .env
-npx prisma generate
+CORS_ORIGIN=\"http://localhost:5173\"" > .env
 npm run dev
 ```
