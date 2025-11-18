@@ -26,7 +26,7 @@ friendsRouter.get("/", async (req, res) => {
   let pending = [];
 
   const friendUsers = await Promise.all(
-    friendsRaw.map((friend) => {
+    friendsRaw.map((friend: any) => {
       const friendId =
         friend.senderId == userId ? friend.recipientId : friend.senderId;
       return prisma.user.findUnique({
@@ -42,7 +42,7 @@ friendsRouter.get("/", async (req, res) => {
       sender: friendUsers[i]!,
     };
 
-    if (userId == friendsRaw[i]!.senderId) continue;
+    if (userId == friendsRaw[i]!.senderId && !friendsRaw[i]!.acceptTime) continue;
     if (friendsRaw[i]!.acceptTime) {
       friends.push(friend);
     } else {
@@ -135,7 +135,7 @@ friendsRouter.post("/:requestId/accept", async (req, res) => {
   }
   await prisma.friend.update({
     where: { id: req.params.requestId },
-    data: { acceptTime: new Date() },
+    data: { acceptTime: Date.now() },
   });
   res.status(200).send();
 });

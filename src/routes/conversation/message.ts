@@ -107,6 +107,7 @@ messageRouter.post("/", async (req, res) => {
       conversationId: req.conversation!.id,
       authorId: req.user!.id,
       content: req.body.content,
+      timestamp: Date.now(),
     },
   });
 
