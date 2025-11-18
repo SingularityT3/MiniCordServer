@@ -202,23 +202,17 @@ class FakePrisma {
         let querySort: any;
         let reverseResults = false;
 
-        if (!hasCursor) {
-          // Requirement: when there is no before/after, return latest messages first
-          querySort = { _id: -1 };
-          reverseResults = false;
-        } else {
-          // Cursor present — follow Prisma semantics:
-          // - If take < 0: reverse the clientSort for the DB query, then reverse results in memory
-          if (query.take && query.take < 0) {
-            querySort = {};
-            for (const k in clientSort) {
-              querySort[k] = clientSort[k] === 1 ? -1 : 1;
-            }
-            reverseResults = true;
-          } else {
-            querySort = { ...clientSort };
-            reverseResults = false;
+        // Cursor present — follow Prisma semantics:
+        // - If take < 0: reverse the clientSort for the DB query, then reverse results in memory
+        if (query.take && query.take < 0) {
+          querySort = {};
+          for (const k in clientSort) {
+            querySort[k] = clientSort[k] === 1 ? -1 : 1;
           }
+          reverseResults = true;
+        } else {
+          querySort = { ...clientSort };
+          reverseResults = false;
         }
 
         // Build filter from where
